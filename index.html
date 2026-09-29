@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#063b70">
+<title>Stagecoach Morecambe Running Sheets</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--navy:#063b70;--blue:#0878bd;--green:#00a887;--orange:#f5a623;--bg:#f2f6fa;--ink:#102b45}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(125deg,#063b70,#0878bd);color:white;padding:22px 18px 26px;border-radius:0 0 24px 24px;box-shadow:0 5px 18px #063b7030}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:54px;height:54px;border-radius:16px;background:white;display:grid;place-items:center;color:var(--navy);font-size:28px;font-weight:900;box-shadow:0 3px 10px #001c3b40}.brand h1{font-size:19px;line-height:1.15;margin:0}.brand p{margin:5px 0 0;font-size:12px;opacity:.88;letter-spacing:.09em}
+main{max-width:720px;margin:auto;padding:18px 14px 42px}.panel{background:white;border-radius:18px;padding:17px;margin:0 0 14px;box-shadow:0 3px 14px #14395b0c;border:1px solid #e5edf4}
+label{font-size:13px;font-weight:750;display:block;margin-bottom:8px;color:#37516a}
+input,select,button{font:inherit}input[type=text],select{width:100%;border:1px solid #cbd9e5;border-radius:12px;padding:14px 13px;background:#fbfdff;color:var(--ink);font-size:17px;outline-color:var(--blue)}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{border:0;border-radius:12px;background:var(--blue);color:white;padding:13px 15px;font-weight:750;cursor:pointer}.btn.secondary{background:#e8f2fa;color:var(--navy)}.btn.green{background:var(--green)}
+.filebox{border:2px dashed #b7cbdc;background:#f7fbff;padding:18px;border-radius:14px;text-align:center}.filebox strong{display:block;margin-bottom:6px}.filebox small{color:#60788c;display:block;margin-bottom:12px}
+#fileInput{max-width:100%;font-size:14px}
+.status{font-size:13px;color:#587186;margin-top:10px;line-height:1.45}.pill{display:inline-block;background:#e8f5f2;color:#007e67;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800}
+.result{border:1px solid #dce7f0;border-radius:14px;padding:14px;margin-top:10px;background:#fcfeff}.result h3{margin:0 0 5px;font-size:18px;color:var(--navy)}.result p{margin:4px 0;font-size:14px;line-height:1.45;white-space:pre-wrap}.result .meta{font-size:12px;color:#627c91;margin-bottom:8px}.empty{text-align:center;padding:24px 12px;color:#668096}.empty b{display:block;color:#31516b;margin-bottom:5px}
+footer{text-align:center;color:#71879a;font-size:12px;padding:0 15px 20px}
+@media(max-width:420px){.controls{grid-template-columns:1fr}.brand h1{font-size:17px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="mark" aria-label="Stagecoach app mark">S</div><div><h1>Stagecoach Morecambe<br>Running Sheets</h1><p>FIND A DUTY • QUICKLY</p></div></div></header>
+<main>
+<section class="panel">
+<label for="duty">Duty number</label>
+<input id="duty" type="text" inputmode="numeric" placeholder="e.g. 1002" autocomplete="off">
+<div class="controls" style="margin-top:13px">
+<div><label for="day">Running sheet</label><select id="day"><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option></select></div>
+<div style="display:flex;align-items:end"><button class="btn" id="searchBtn" style="width:100%">Search duties</button></div>
+</div>
+<div class="status" id="hint">Add your running-sheet PDFs below. Your imported sheets stay saved in this browser on this device.</div>
+</section>
+<section class="panel">
+<h2 style="font-size:17px;margin:0 0 12px">Your running sheets</h2>
+<div class="filebox"><strong>Import PDF running sheets</strong><small>Select one or more PDFs from your phone. You can add each day’s sheet separately.</small><input id="fileInput" type="file" accept="application/pdf,.pdf" multiple></div>
+<div class="status" id="libraryStatus">No PDFs imported yet.</div>
+<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn secondary" id="clearBtn">Clear saved PDFs</button><button class="btn secondary" id="installHelp">Install on Android</button></div>
+</section>
+<section class="panel">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h2 style="font-size:17px;margin:0">Search results</h2><span class="pill" id="count">0 results</span></div>
+<div id="results"><div class="empty"><b>Ready when you are</b>Enter a duty number and choose the day.</div></div>
+</section>
+</main>
+<footer>Unofficial personal lookup tool. Always follow the current official running sheet and depot instructions.</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}
+const DB_NAME='stagecoach-running-sheets', STORE='pdfs'; let db;
+const openDB=()=>new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>req.result.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});req.onsuccess=()=>{db=req.result;resolve(db)};req.onerror=()=>reject(req.error)});
+const allDocs=()=>new Promise((resolve,reject)=>{let r=db.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const putDoc=d=>new Promise((resolve,reject)=>{let r=db.transaction(STORE,'readwrite').objectStore(STORE).add(d);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const clearDocs=()=>new Promise((resolve,reject)=>{let r=db.transaction(STORE,'readwrite').objectStore(STORE).clear();r.onsuccess=resolve;r.onerror=()=>reject(r.error)});
+async function extractPDF(file){if(!window.pdfjsLib)throw Error('PDF reader could not load. Check your internet connection and reload.');const data=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data}).promise;let pages=[];for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n);const content=await page.getTextContent();const text=content.items.map(x=>x.str).join(' ');pages.push({page:n,text});}return pages;}
+function refreshLibrary(){allDocs().then(d=>{document.getElementById('libraryStatus').textContent=d.length?`${d.length} PDF(s) saved on this device: ${d.map(x=>x.name).join(', ')}`:'No PDFs imported yet.';});}
+document.getElementById('fileInput').addEventListener('change',async e=>{const files=[...e.target.files];if(!files.length)return;const status=document.getElementById('libraryStatus');status.textContent='Importing PDFs…';for(const file of files){try{const pages=await extractPDF(file);await putDoc({name:file.name,added:new Date().toISOString(),pages});}catch(err){alert(`Could not import ${file.name}: ${err.message}`);}}e.target.value='';refreshLibrary();status.textContent='PDF import complete.';});
+document.getElementById('searchBtn').addEventListener('click',search);
+document.getElementById('duty').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+async function search(){const duty=document.getElementById('duty').value.trim();const day=document.getElementById('day').value;const box=document.getElementById('results');const count=document.getElementById('count');if(!duty){box.innerHTML='<div class="empty"><b>Enter a duty number</b>Then tap Search duties.</div>';count.textContent='0 results';return;}
+const docs=await allDocs();let found=[];for(const doc of docs){const dayMatch=doc.name.toLowerCase().includes(day.toLowerCase()) || (day==='Monday'||day==='Tuesday'||day==='Friday')&&doc.name.toLowerCase().includes('wednesday');if(!dayMatch)continue;for(const p of doc.pages){const txt=p.text;let i=txt.indexOf(duty);while(i>=0){const before=i===0?'':txt[i-1],after=txt[i+duty.length]||'';if(!/\\d/.test(before)&&!/\\d/.test(after)){found.push({name:doc.name,page:p.page,text:txt.slice(Math.max(0,i-240),Math.min(txt.length,i+750))});break;}i=txt.indexOf(duty,i+1);}}}
+count.textContent=`${found.length} result${found.length===1?'':'s'}`;if(!found.length){box.innerHTML='<div class="empty"><b>No match found</b>Check the day and duty number, or import the correct running-sheet PDF.</div>';return;}
+box.innerHTML='';found.slice(0,30).forEach(x=>{const el=document.createElement('article');el.className='result';const h=document.createElement('h3');h.textContent=`Duty ${duty}`;const meta=document.createElement('div');meta.className='meta';meta.textContent=`${x.name} • PDF page ${x.page}`;const p=document.createElement('p');p.textContent=x.text;const b=document.createElement('button');b.className='btn secondary';b.textContent='View PDF page';b.onclick=()=>alert(`Open ${x.name} in your PDF viewer and go to page ${x.page}.`);el.append(h,meta,p,b);box.append(el);});}
+document.getElementById('clearBtn').addEventListener('click',async()=>{if(confirm('Remove all imported running sheets from this device?')){await clearDocs();refreshLibrary();document.getElementById('results').innerHTML='<div class="empty"><b>PDFs cleared</b>Import your running sheets to search again.</div>';document.getElementById('count').textContent='0 results';}});
+document.getElementById('installHelp').addEventListener('click',()=>alert('To install as an app: this folder must be hosted on a secure website (HTTPS). Open that address in Chrome on Android, tap ⋮, then “Add to Home screen” or “Install app”.'));
+openDB().then(refreshLibrary).catch(e=>alert('Browser storage is unavailable: '+e.message));
+</script>
+</body></html>

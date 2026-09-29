@@ -1,0 +1,9 @@
+{
+  "name": "Stagecoach Morecambe Running Sheets",
+  "short_name": "Running Sheets",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2f6fa",
+  "theme_color": "#063b70",
+  "description": "Search Stagecoach Morecambe running-sheet PDFs by duty number."
+}
